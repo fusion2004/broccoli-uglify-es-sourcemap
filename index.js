@@ -1,6 +1,6 @@
 var walkSync = require('walk-sync');
 var Plugin = require('broccoli-plugin');
-var UglifyJS = require('uglify-js');
+var UglifyJS = require('uglify-es');
 var path = require('path');
 var fs = require('fs');
 var merge = require('lodash.merge');
@@ -26,7 +26,6 @@ function UglifyWriter (inputNodes, options) {
   this.options = merge({
     mangle: true,
     compress: true,
-    sourceMapIncludeSources: true
   }, options);
 
   this.sourceMapConfig = merge({
@@ -99,7 +98,6 @@ UglifyWriter.prototype.processFile = function(inFile, outFile, relativePath, out
   var src = fs.readFileSync(inFile, 'utf-8');
   var mapName = path.basename(outFile).replace(/\.js$/,'') + '.map';
   var mapDir;
-  var origSourcesContent;
 
   if (this.sourceMapConfig.mapDir) {
     mapDir = path.join(outDir, this.sourceMapConfig.mapDir);
@@ -107,22 +105,31 @@ UglifyWriter.prototype.processFile = function(inFile, outFile, relativePath, out
     mapDir = path.dirname(path.join(outDir, relativePath));
   }
 
-  var opts = {
-    fromString: true,
-    outSourceMap: this.mapURL(mapName),
-    enableSourcemaps: this.enableSourcemaps()
+  var sourceMapOptions = {
+    includeSources: true,
+    filename: inFile,
+    url: this.mapURL(mapName)
   };
 
-  if (opts.enableSourcemaps && srcURL.existsIn(src)) {
+  var opts = {
+    compress: this.options.compress,
+    mangle: this.options.mangle,
+    sourceMap: this.enableSourcemaps() ? sourceMapOptions : false
+  };
+
+  debugger;
+
+  if (this.enableSourcemaps() && srcURL.existsIn(src)) {
     var url = srcURL.getFrom(src);
-    opts.inSourceMap = path.join(path.dirname(inFile), url);
-    origSourcesContent = JSON.parse(fs.readFileSync(opts.inSourceMap)).sourcesContent;
+
+    opts.sourceMap.content = JSON.parse(fs.readFileSync(path.join(path.dirname(inFile), url)));
   }
 
   try {
     var start = new Date();
     debug('[starting]: %s %dKB', relativePath, (src.length / 1000));
-    var result = UglifyJS.minify(src, merge(opts, this.options));
+    var result = UglifyJS.minify(src, opts, this.options);
+    if (result.error) throw result.error;
     var end = new Date();
     var total = end - start;
     debug('[finished]: %s %dKB in %dms', relativePath, (result.code.length / 1000), total);
@@ -137,7 +144,7 @@ UglifyWriter.prototype.processFile = function(inFile, outFile, relativePath, out
     throw e;
   }
 
-  if (opts.enableSourcemaps) {
+  if (this.enableSourcemaps()) {
     var newSourceMap = JSON.parse(result.map);
 
     // uglify is wrong about this and always puts the maps own name
