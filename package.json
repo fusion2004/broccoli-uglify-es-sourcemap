@@ -1,6 +1,6 @@
 {
   "name": "broccoli-uglify-es-sourcemap",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Broccoli filter to uglify files while preserving their sourcemaps.",
   "homepage": "https://github.com/fusion2004/broccoli-uglify-sourcemap#readme",
   "bugs": {
