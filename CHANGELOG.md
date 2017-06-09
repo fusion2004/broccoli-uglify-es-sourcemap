@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.3] - 2017-06-09
+### Changed
+- Upgrade uglify-es to 3.0.15
+
 ## [1.0.2] - 2017-05-23
 ### Changed
 - Upgrade uglify-es to 3.0.11
